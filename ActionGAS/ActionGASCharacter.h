@@ -78,12 +78,43 @@ public:
 
 protected:
 	//初始化技能组件和属性
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
 	UAGAbilitySystemComponentBase* AbilitySystemComponent;
 
 	//说明该属性不会保存或者从磁盘加载，相当于该值是其他值通过计算而得，没有存储的必要，
 	//网络传输序列化时，不希望这些字段被记录或传输，字段上面加transient关键字
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AbilitySystem")
-	UAG_AttributeSetBase* AttributeSetBase;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	UAG_AttributeSetBase* AttributeSet;
+
+	//属性 一个GE去初始化默认属性的东西
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TSubclassOf<UGameplayEffect> DefaultAttributeSet;
+
+	//能力
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+
+	//效果
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	TArray<TSubclassOf<UGameplayEffect>> DefaultEffects;
+public:
+	//对自己应用GE
+	bool ApplyGameplayEffectToSelf(const TSubclassOf<UGameplayEffect> Effect, FGameplayEffectContextHandle InEffectContext);
+protected:
+	//初始化函数(Attribute,effects,abilities)
+	void InitializeAttributes();
+
+	//授予 -> 能力 GA
+	void GiveAbilities();
+
+	//准备应用的GE列表
+	void ApplyStartuoEffects();
+
+	//角色切换
+	//只发生服务器
+	virtual void PossessedBy(AController* NewController) override;
+
+	// 在客户端PlayerController的OnRep_PlayerState()函数中初始化
+	virtual void OnRep_PlayerState() override;
 };
 

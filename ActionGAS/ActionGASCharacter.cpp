@@ -73,7 +73,99 @@ AActionGASCharacter::AActionGASCharacter()
 
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
-	AttributeSetBase = CreateDefaultSubobject<UAG_AttributeSetBase>(TEXT("AttributeSet"));
+	AttributeSet = CreateDefaultSubobject<UAG_AttributeSetBase>(TEXT("AttributeSet"));
+}
+
+UAbilitySystemComponent* AActionGASCharacter::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
+
+bool AActionGASCharacter::ApplyGameplayEffectToSelf(const TSubclassOf<UGameplayEffect> Effect,
+                                                    FGameplayEffectContextHandle InEffectContext)
+{
+	if (!Effect.Get())
+		return false;
+
+	//1. The GameplayEffectSpec(GESpc) 可以认为是GameplayEffects的实例化
+	//UAbilitySystemComponentBase::MakeOutgoingSpec()专门用于从GameplayEffects创建GameplayEffectSpec
+	//在应用一个GameplayEffect时，会先从GameplayEffect创建一个GameplayEffectSpec出来，然后实际上是把GameplayEffectSpec应用给目标
+	//2. GameplayEffectSpec可以不是必须立即应用，通常是将GameplayEffectSpec传递给由技能创建的子弹，然后当子弹击中目标时将具体技能效果GameplayEffect应用给目标
+	FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(Effect, 1, InEffectContext);
+
+	if (SpecHandle.IsValid())
+	{
+		//应用 FGameplayEffectSpec给目标 !spec !Handle
+		FActiveGameplayEffectHandle ActiveHandle = AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+		//返回应用效果的结果
+		return  ActiveHandle.WasSuccessfullyApplied();
+	}
+	return false;
+}
+
+//初始化属性集
+void AActionGASCharacter::InitializeAttributes()
+{
+	if (GetLocalRole() == ROLE_Authority && DefaultAttributeSet && AttributeSet)
+	{
+		//创建GE效果上下文 实际就是FE的Params配置
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		// AddSourceObject()是EffectContext中的一个方法，用于向该效果上下文中添加一个源对象，源对象一般是指需要被处理的目标对象，暂时设置为de
+		EffectContext.AddSourceObject(this);
+		ApplyGameplayEffectToSelf(DefaultAttributeSet.Get(), EffectContext);
+	}
+}
+
+//授予->能力GA
+void AActionGASCharacter::GiveAbilities()
+{
+	if (HasAuthority() && AbilitySystemComponent)
+	{
+		for (auto DefaultAbility : DefaultAbilities)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(DefaultAbility));
+		}
+	}
+}
+
+void AActionGASCharacter::ApplyStartuoEffects()
+{
+	if (GetLocalRole() == ROLE_Authority && DefaultAttributeSet && AttributeSet)
+	{
+		//创建GE效果上下文 实际就是GE的Params配置
+		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+		// AddSourceObject()是EffectContext中的一个方法，用于向该效果上下文中添加一个源对象，源对象一般是指需要被处理的目标对象，暂时设置为de
+		EffectContext.AddSourceObject(this);
+
+		//默认的GE列表
+		for (auto DefaultEffect : DefaultEffects)
+		{
+			ApplyGameplayEffectToSelf(DefaultEffect.Get(), EffectContext);
+		}
+	}
+}
+
+void AActionGASCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	//只在服务器执行此函数
+
+	//初始化服务器GAS
+	AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	GiveAbilities();
+
+	InitializeAttributes();
+	
+	ApplyStartuoEffects();
+}
+
+void AActionGASCharacter::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+	//初始化客户端GAS
+	AbilitySystemComponent->InitAbilityActorInfo(this, this);
+	//InitializeAttributes();
 }
 
 void AActionGASCharacter::BeginPlay()
