@@ -4,14 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
-#include "Test_GameGameModeBase.generated.h"
+#include "ActionGASGameMode.generated.h"
 
-/**
- * 
- */
-UCLASS()
-class TEST_GAME_API ATest_GameGameModeBase : public AGameModeBase
+UCLASS(minimalapi)
+class AActionGASGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
-	
+
+public:
+	AActionGASGameMode();
 };
+
+
+

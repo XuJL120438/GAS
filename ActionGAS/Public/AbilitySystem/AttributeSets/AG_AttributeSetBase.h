@@ -23,17 +23,17 @@ GAMEPLAYATTRIBUTE_VALUE_INITTER(PropertyName)
  * 
  */
 UCLASS()
-class TEST_GAME_API UAG_Attribute : public UAttributeSet
+class ACTIONGAS_API UAG_AttributeSetBase : public UAttributeSet
 {
 	GENERATED_BODY()
 public:
 	UPROPERTY(BlueprintReadOnly, Category = "Health", ReplicatedUsing = OnRep_Health)
 	FGameplayAttributeData Health;
-	ATTRIBUTE_ACCESSORS(UAG_Attribute, Health)
+	ATTRIBUTE_ACCESSORS(UAG_AttributeSetBase, Health)
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Health", ReplicatedUsing = OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
-	ATTRIBUTE_ACCESSORS(UAG_Attribute, MaxHealth)
+	ATTRIBUTE_ACCESSORS(UAG_AttributeSetBase, MaxHealth)
 protected:
 	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data) override;
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
