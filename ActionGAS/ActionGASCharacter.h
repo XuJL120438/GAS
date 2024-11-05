@@ -8,6 +8,7 @@
 #include "AbilitySystemInterface.h"
 #include "Ability/Components/AGAbilitySystemComponentBase.h"
 #include "AbilitySystem/AttributeSets/AG_AttributeSetBase.h"
+#include "DataAssets/CharacterDataAsset.h"
 #include "ActionGASCharacter.generated.h"
 
 class USpringArmComponent;
@@ -16,6 +17,7 @@ class UInputMappingContext;
 class UInputAction;
 class UAGAbilitySystemComponentBase;
 class UAG_AttributeSetBase;
+class UCharacterDataAsset;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -54,6 +56,7 @@ public:
 	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const;
 
+	virtual void PostInitializeComponents() override;
 protected:
 
 	/** Called for movement input */
@@ -83,26 +86,33 @@ protected:
 
 	//说明该属性不会保存或者从磁盘加载，相当于该值是其他值通过计算而得，没有存储的必要，
 	//网络传输序列化时，不希望这些字段被记录或传输，字段上面加transient关键字
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS", Transient)
 	UAG_AttributeSetBase* AttributeSet;
 
-	//属性 一个GE去初始化默认属性的东西
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TSubclassOf<UGameplayEffect> DefaultAttributeSet;
+	// //属性 一个GE去初始化默认属性的东西
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	// TSubclassOf<UGameplayEffect> DefaultAttributeSet;
+	//
+	// //能力
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	// TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+	//
+	// //效果
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
+	// TArray<TSubclassOf<UGameplayEffect>> DefaultEffects;
 
-	//能力
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TArray<TSubclassOf<UGameplayAbility>> DefaultAbilities;
+	//角色数据要开启网络复制
+	UPROPERTY(ReplicatedUsing = OnRep_CharacterData)
+	FCharacterData CharacterData;
 
-	//效果
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "GAS")
-	TArray<TSubclassOf<UGameplayEffect>> DefaultEffects;
-public:
-	//对自己应用GE
-	bool ApplyGameplayEffectToSelf(const TSubclassOf<UGameplayEffect> Effect, FGameplayEffectContextHandle InEffectContext);
+	UFUNCTION()
+	void OnRep_CharacterData();
+	
+	UPROPERTY(EditDefaultsOnly)
+	UCharacterDataAsset* CharacterDataAsset;
 protected:
-	//初始化函数(Attribute,effects,abilities)
-	void InitializeAttributes();
+	// //初始化函数(Attribute,effects,abilities)
+	// void InitializeAttributes();
 
 	//授予 -> 能力 GA
 	void GiveAbilities();
@@ -116,5 +126,21 @@ protected:
 
 	// 在客户端PlayerController的OnRep_PlayerState()函数中初始化
 	virtual void OnRep_PlayerState() override;
+public:
+
+public:
+	UFUNCTION(BlueprintCallable)
+	FCharacterData GetCharacterData() const;
+
+	UFUNCTION(BlueprintCallable)
+	void SetCharacterData(const FCharacterData& InCharacterData);
+	
+	//对自己应用GE
+	bool ApplyGameplayEffectToSelf(const TSubclassOf<UGameplayEffect> Effect, FGameplayEffectContextHandle InEffectContext);
+
+	//子类去实现的虚方法，方便之后重写此方法修改器
+	virtual void InitFromCharacterData(const FCharacterData& InCharacterData, bool bFromReplication = false) const;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 };
 

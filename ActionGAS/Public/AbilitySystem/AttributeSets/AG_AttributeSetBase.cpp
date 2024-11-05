@@ -33,7 +33,7 @@ void UAG_AttributeSetBase::PreAttributeChange(const FGameplayAttribute& Attribut
 	if (Attribute == GetHealthAttribute())
 	{
 		//GetMaxHealth()是获取AttributeSetBase中定义的属性，GetMaxHealth()是AttributeSetBase中定义的函数
-		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
+		// NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
 	}
 }
 
